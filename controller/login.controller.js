@@ -28,8 +28,10 @@ exports.login = async (req, res) => {
         res.cookie("token", token, {
           httpOnly: true,
           secure: false,// cambiar a true en producción con HTTPS
-          sameSite: "lax",// esto es para evitar ataques CSRF y significa que la cookie se enviará solo en solicitudes del mismo sitio
-          maxAge: 1000 * 60 * 60, // 
+          sameSite: "lax",
+        //   maxAge: 1000 * 60 * 60, //1H
+          maxAge: 1000 * 60 * 60 * 24 // 24 horas
+
         });
 
         res.status(200).json({ Welcome: `${user.name + " " + user.lastName}`, token });
