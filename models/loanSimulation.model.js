@@ -23,6 +23,19 @@ const loanSimulationSchema = mongoose.Schema(
       description: "Plazo del préstamo en meses",
     },
 
+    rateType: {
+      type: String,
+      enum: ["fixed", "variable"],
+      required: true,
+      description: "Tipo de tasa de interés (fija o variable)",
+    },
+
+    amortizationType: {
+      type: String,
+      enum: ["annuity", "fixed"],
+      required: true,
+      description: "Tipo de amortización (annuity o fixed)",
+    },
     annualInterestRate: {
       type: Number,
       required: true,
@@ -59,7 +72,8 @@ const loanSimulationSchema = mongoose.Schema(
     riskProfileId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "riskProfile",
-      description: "Referencia al perfil de riesgo que aplicó a esta simulación",
+      description:
+        "Referencia al perfil de riesgo que aplicó a esta simulación",
     },
 
     approvalStatus: {
@@ -69,15 +83,33 @@ const loanSimulationSchema = mongoose.Schema(
       description: "Resultado de la simulación según las reglas de negocio",
     },
 
-    rulesApplied: {
-      type: [String],
-      description: "Lista de reglas de negocio aplicadas en esta simulación",
-    },
+    rulesApplied: [
+      {
+        name: { type: String },
+        description: { type: String },
+        type: { type: String },
+      },
+    ],
 
     notes: {
       type: String,
       maxlength: 300,
       description: "Comentarios o justificación de la simulación",
+    },
+
+    statusForUser: {
+      type: String,
+      enum: ["aprobado", "rechazado", "pendiente"],
+      default: "pendiente",
+      description: "decision del usuario",
+    },
+    startDate: {
+      type: Date,
+      description: "Fecha de inicio del préstamo",
+    },
+    result: {
+      type: Array,
+      description: "Resultado de la simulación",
     },
 
     createdAt: {

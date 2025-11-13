@@ -1,6 +1,7 @@
 const { default: mongoose } = require("mongoose");
 const bcrypt = require("bcrypt");
 const e = require("express");
+const riskProfile = require("./riskProfile.model");
 
 const userSchema = mongoose.Schema(
   {
@@ -85,7 +86,7 @@ const userSchema = mongoose.Schema(
       enum: ["primaria", "secundaria", "tecnico", "pregrado", "postgrado"],
     },
 
-    workProfile: {
+    employmentType: {
       type: String,
       enum: ["empleado", "independiente", "desempleado", "jubilado"],
     },
@@ -153,6 +154,13 @@ const userSchema = mongoose.Schema(
       enum: ["A", "B", "C"],
       default: "C",
     },
+    riskProfile: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "riskProfile",
+      description:
+        "Referencia al perfil de riesgo que aplicó a esta simulación",
+    },
+    
      totalDebt: {
       type: Number,
     }, 
