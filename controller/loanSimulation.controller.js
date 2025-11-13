@@ -9,8 +9,6 @@ const loanModel = require("../models/loans.model");
 // ---------------------------------------------
 // FUNCIÓN AUXILIAR: Evaluar reglas de negocio
 // ---------------------------------------------
-
-// | evaluateBusinessRules |
 const evaluateBusinessRules = async (contextData) => {
   const rules = await BusinessRule.find({ isActive: true });
 
