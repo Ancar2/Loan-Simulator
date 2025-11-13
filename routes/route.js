@@ -41,16 +41,17 @@ router.put("/businessrules/update/:id", middlewareJWT, businessRuleController.up
 router.delete("/businessrules/delete/:id", middlewareJWT, businessRuleController.deleteBusinessRule);
 
 //rutas de simulaciones de préstamo
-router.post("/calculateScore/:idSimulacion", middlewareJWT, loanSimulationController.calculateCreditScore);
-// router.post("/loansimulations/create", middlewareJWT, loanSimulationController.createSimulation);
-// router.get("/loansimulations", middlewareJWT, loanSimulationController.getSimulations);
-// router.get("/loansimulations/:id", middlewareJWT, loanSimulationController.getSimulationById);
-// router.delete("/loansimulations/delete/:id", middlewareJWT, loanSimulationController.deleteSimulation);
 router.post('/simulate',middlewareJWT, loanSimulationController.simulate);
+router.post("/calculateScore/:idSimulacion", middlewareJWT, loanSimulationController.calculateCreditScore);
 router.post('/accept/loan/:idSimulacion',middlewareJWT, loanSimulationController.updateStatusSimulation);
 
-
+//rutas de tasa de interés
 router.post("/interest_rates/create", middlewareJWT, interestRateController.createInterestRate);
+router.get("/interest_rates", middlewareJWT, interestRateController.getInterestRates);
+router.get("/interest_rates/:id", middlewareJWT, interestRateController.getInterestRateById);
+router.put("/interest_rates/update/:id", middlewareJWT, interestRateController.updateInterestRate);
+router.delete("/interest_rates/delete/:id", middlewareJWT, interestRateController.deleteInterestRate);
+
 
 
 module.exports = router;

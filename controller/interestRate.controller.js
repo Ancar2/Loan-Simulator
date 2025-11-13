@@ -140,22 +140,3 @@ exports.deleteInterestRate = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
-
-/* ===========================================================
-   OBTENER LA TASA ACTIVA MÁS RECIENTE (útil para simulador)
-=========================================================== */
-exports.getCurrentRate = async (req, res) => {
-  try {
-    const today = new Date();
-    const rate = await InterestRate.findOne({
-      startDate: { $lte: today },
-      $or: [{ endDate: { $gte: today } }, { endDate: null }],
-    }).sort({ startDate: -1 });
-
-    if (!rate) return res.status(404).json({ error: "No hay tasa activa" });
-
-    res.status(200).json(rate);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
