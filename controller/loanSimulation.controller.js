@@ -457,7 +457,7 @@ exports.simulate = async (req, res) => {
           startDate,
           sure: interestRate.sure,
         });
-        // si quieres cuota variable + tasa variable → fixedPayment: false
+        //  cuota variable + tasa variable → fixedPayment: false
         // result = buildAmortizationSchedule({ principal, termMonths: n, annualRate, amortizationType, fixedPayment: false, startDate });
       }
     } else if (amortizationType === "linear") {
