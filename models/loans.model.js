@@ -1,20 +1,68 @@
-// models/loan.model.js
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 
-const LoanSchema =  mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-  simulationId: { type: mongoose.Schema.Types.ObjectId, ref: "LoanSimulation", required: true },
-  amount: Number,
-  termMonths: Number,
-  interestRate: Number,
-  amortizationType: String,
-  approvalStatus: String,
-  startDate: Date,
-  profile: String,
-  creditScore: Number,
-  rulesApplied: Array,
-  createdAt: { type: Date, default: Date.now },
+const loanSchema = mongoose.Schema({
+  userId: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: "user", 
+    required: true 
+  },
+
+  simulationId: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: "loanSimulation", 
+    required: true 
+  },
+
+  amount: { 
+    type: Number, 
+    required: true 
+  },
+
+  termMonths: { 
+    type: Number, 
+    required: true 
+  },
+
+  interestRate: { 
+    type: Number, 
+    required: true 
+  },
+
+  amortizationType: { 
+    type: String, 
+    enum: ["annuity", "german", "american"], 
+    required: true 
+  },
+
+  approvalStatus: { 
+    type: String, 
+    enum: ["aprobado", "rechazado", "pendiente"], 
+    default: "pendiente" 
+  },
+
+  startDate: { 
+    type: Date, 
+    default: Date.now 
+  },
+
+  profile: { 
+    type: String 
+  },
+
+  creditScore: { 
+    type: Number 
+  },
+
+  rulesApplied: { 
+    type: Array, 
+    default: [] 
+  },
+
+  createdAt: { 
+    type: Date, 
+    default: Date.now 
+  }
 });
 
-const loanModel = mongoose.model("loan", LoanSchema);
-module.exports = loanModel
+const LoanModel = mongoose.model('loan', loanSchema);
+module.exports = LoanModel;

@@ -1,29 +1,16 @@
+const { Parser } = require("expr-eval");
 const LoanSimulationModel = require("../models/loanSimulation.model");
 const riskProfile = require("../models/riskProfile.model");
 const BusinessRule = require("../models/businessRule.model");
-// const { createAuditLog } = require("./auditLog.controller");
 const userModel = require("../models/user.model");
-
 const InterestRateModel = require("../models/InterestRate.model");
 const loanModel = require("../models/loans.model");
 
-// /* ===========================================================
-//    FUNCIÓN AUXILIAR: OBTENER PERFIL DE RIESGO
-// =========================================================== */
-// const getRiskProfileByScore = async (creditScore) => {
-//   const profiles = await riskProfile.find().sort({ minScore: 1 });
+// ---------------------------------------------
+// FUNCIÓN AUXILIAR: Evaluar reglas de negocio
+// ---------------------------------------------
 
-//   for (const profile of profiles) {
-//     if (creditScore >= profile.minScore && creditScore <= profile.maxScore) {
-//       return profile;
-//     }
-//   }
-//   return null;
-// };
-
-// ===========================================================
-// FUNCIÓN AUXILIAR: EVALUAR REGLAS DE NEGOCIO
-// ===========================================================
+// | evaluateBusinessRules |
 const evaluateBusinessRules = async (contextData) => {
   const rules = await BusinessRule.find({ isActive: true });
 
@@ -33,23 +20,19 @@ const evaluateBusinessRules = async (contextData) => {
 
   for (const rule of rules) {
     try {
-      // Combinar contextData con los parámetros de la regla
       const data = { ...contextData, ...(rule.parameters || {}) };
 
-      // 🔍 Extraer solo las variables usadas en la condición
-      const usedVariables = [...new Set(rule.condition.match(/\b[A-Za-z_]\w*\b/g))].filter(
-        (key) => Object.keys(data).includes(key)
-      );
+      const usedVariables = [
+        ...new Set(rule.condition.match(/\b[A-Za-z_]\w*\b/g)),
+      ].filter((key) => Object.keys(data).includes(key));
 
-      // Crear un subconjunto solo con las variables usadas
       const relevantData = {};
       usedVariables.forEach((v) => (relevantData[v] = data[v]));
 
-      // Crear función dinámica usando solo las variables necesarias
-      const fn = new Function(...usedVariables, `return (${rule.condition});`);
-      const passed = fn(...usedVariables.map((v) => relevantData[v]));
+      const parser = new Parser();
+      const expression = parser.parse(rule.condition);
+      const passed = expression.evaluate(relevantData);
 
-      // Generar texto con los valores reales de comparación
       const evaluatedCondition = rule.condition.replace(
         /\b[A-Za-z_]\w*\b/g,
         (key) =>
@@ -92,6 +75,135 @@ const evaluateBusinessRules = async (contextData) => {
   };
 };
 
+// ---------------------------------------------
+// FUNCIONES AUXILIARES DE AMORTIZACIÓN
+// ---------------------------------------------
+
+// | calculateAnnuityPayment |
+const calculateAnnuityPayment = (principal, monthlyRate, n) => {
+  if (monthlyRate === 0) return principal / n;
+  return principal * (monthlyRate / (1 - Math.pow(1 + monthlyRate, -n)));
+};
+
+// | generateVariableRates |
+const generateVariableRates = (
+  baseRate,
+  termMonths,
+  spread = 0,
+  volatility = 0.5,
+  minRate = 0,
+  maxRate = 100
+) => {
+  const rates = [];
+  let currentRate = baseRate + spread;
+
+  for (let i = 0; i < termMonths; i++) {
+    const variation = 0.5 * volatility;
+    currentRate = Math.min(Math.max(currentRate + variation, minRate), maxRate);
+    rates.push(parseFloat(currentRate.toFixed(2)));
+  }
+
+  return rates;
+};
+
+// | buildAmortizationSchedule |
+const buildAmortizationSchedule = ({
+  principal,
+  termMonths,
+  annualRate,
+  amortizationType = "annuity",
+  startDate = null,
+  fixedPayment = false,
+  sure,
+}) => {
+  const schedule = [];
+  let remaining = principal;
+  let totalInterest = 0;
+  let totalPaid = 0;
+
+  let fixedMonthlyPayment = null;
+  if (amortizationType === "annuity" && fixedPayment) {
+    const firstRate = Array.isArray(annualRate)
+      ? annualRate[0] / 12 / 100
+      : annualRate / 12 / 100;
+    fixedMonthlyPayment = calculateAnnuityPayment(
+      principal,
+      firstRate,
+      termMonths
+    );
+  }
+
+  for (let i = 0; i < termMonths; i++) {
+    let monthlyRate = Array.isArray(annualRate)
+      ? annualRate[i] / 12.935 / 100
+      : annualRate / 12 / 100;
+
+    let payment, principalPaid, interest;
+
+    if (amortizationType === "annuity") {
+      if (fixedPayment) {
+        payment = Math.round(fixedMonthlyPayment + sure);
+        interest = parseFloat((remaining * monthlyRate).toFixed(2));
+        principalPaid = parseFloat((payment - interest).toFixed(2));
+      } else {
+        payment = calculateAnnuityPayment(
+          remaining,
+          monthlyRate,
+          termMonths - i
+        );
+        interest = parseFloat((remaining * monthlyRate).toFixed(2));
+        principalPaid = parseFloat((payment - interest).toFixed(2));
+      }
+    } else if (amortizationType === "linear") {
+      principalPaid = parseFloat((principal / termMonths).toFixed(2));
+      interest = parseFloat((remaining * monthlyRate).toFixed(2));
+      payment = parseFloat((principalPaid + interest + sure).toFixed(2));
+    } else {
+      throw new Error("amortizationType must be annuity or linear");
+    }
+
+    const balanceBeforePayment = remaining;
+    remaining = parseFloat(Math.max(0, remaining - principalPaid).toFixed(2));
+
+    totalInterest += interest;
+    totalPaid += payment;
+
+    schedule.push({
+      period: i + 1,
+      dueDate: startDate
+        ? new Date(
+            new Date(startDate).setMonth(
+              new Date(startDate).getMonth() + (i + 1)
+            )
+          )
+            .toISOString()
+            .slice(0, 10)
+        : null,
+      payment,
+      principal: principalPaid,
+      interest,
+      balance: balanceBeforePayment,
+      sure: sure,
+    });
+  }
+
+  const totalPayments = schedule.reduce((sum, item) => sum + item.payment, 0);
+  const averagePayment = totalPayments / schedule.length;
+
+  const maxPayment = schedule.reduce((max, item) => {
+    return item.payment > max ? item.payment : max;
+  }, 0);
+
+  return {
+    schedule,
+    totals: {
+      totalPaid: parseFloat(totalPaid.toFixed(2)),
+      totalInterest: parseFloat(totalInterest.toFixed(2)),
+      monthlyPaymentApprox: maxPayment,
+    },
+    promedio: parseFloat(averagePayment.toFixed(2)),
+  };
+};
 
 // ===========================================================
 // CONTROLADOR: CALCULAR CREDIT SCORE Y ACTUALIZAR SIMULACIÓN
@@ -104,12 +216,13 @@ exports.calculateCreditScore = async (req, res) => {
     // 1️⃣ Buscar la simulación existente
     const simulacion = await LoanSimulationModel.findById(idSimulacion);
     if (!simulacion)
-      return res.status(404).json({ msj: "Simulación de préstamo no encontrada" });
+      return res
+        .status(404)
+        .json({ msj: "Simulación de préstamo no encontrada" });
 
     // 2️⃣ Buscar usuario asociado
     const user = await userModel.findById(userId);
-    if (!user)
-      return res.status(404).json({ msj: "Usuario no encontrado" });
+    if (!user) return res.status(404).json({ msj: "Usuario no encontrado" });
 
     // ------------------------------
     // Datos base del usuario
@@ -191,7 +304,7 @@ exports.calculateCreditScore = async (req, res) => {
     });
 
     user.creditScore = finalScore;
-    user.riskProfile =  RiskProfile._id
+    user.riskProfile = RiskProfile._id;
     user.profile = RiskProfile ? RiskProfile.category : "C";
     await user.save();
 
@@ -267,139 +380,9 @@ exports.calculateCreditScore = async (req, res) => {
   }
 };
 
-
-function calculateAnnuityPayment(principal, monthlyRate, n) {
-  if (monthlyRate === 0) return principal / n;
-  return principal * (monthlyRate / (1 - Math.pow(1 + monthlyRate, -n)));
-}
-
-// Genera array de tasas variables
-function generateVariableRates(
-  baseRate,
-  termMonths,
-  spread = 0,
-  volatility = 0.5,
-  minRate = 0,
-  maxRate = 100
-) {
-  const rates = [];
-  let currentRate = baseRate + spread;
-
-  for (let i = 0; i < termMonths; i++) {
-    const variation = 0.5 * volatility;
-    currentRate = Math.min(Math.max(currentRate + variation, minRate), maxRate);
-    rates.push(parseFloat(currentRate.toFixed(2)));
-  }
-
-  return rates;
-}
-
-function buildAmortizationSchedule({
-  principal,
-  termMonths,
-  annualRate,
-  amortizationType = "annuity",
-  startDate = null,
-  fixedPayment = false,
-  sure,
-}) {
-  const schedule = [];
-  let remaining = principal;
-  let totalInterest = 0;
-  let totalPaid = 0;
-
-  // 1️⃣ calcular cuota fija inicial si corresponde
-  let fixedMonthlyPayment = null;
-  if (amortizationType === "annuity" && fixedPayment) {
-    const firstRate = Array.isArray(annualRate)
-      ? annualRate[0] / 12 / 100
-      : annualRate / 12 / 100;
-    fixedMonthlyPayment = calculateAnnuityPayment(
-      principal,
-      firstRate,
-      termMonths
-    );
-  }
-
-  for (let i = 0; i < termMonths; i++) {
-    let monthlyRate = Array.isArray(annualRate)
-      ? annualRate[i] / 12.935 / 100
-      : annualRate / 12 / 100;
-
-    let payment, principalPaid, interest;
-
-    if (amortizationType === "annuity") {
-      if (fixedPayment) {
-        // 2️⃣ cuota fija (tasa fija o variable)
-        payment = Math.round(fixedMonthlyPayment + sure);
-        interest = parseFloat((remaining * monthlyRate).toFixed(2));
-
-        principalPaid = parseFloat((payment - interest).toFixed(2));
-      } else {
-        // 3️⃣ cuota variable (tasa variable)
-        payment = calculateAnnuityPayment(
-          remaining,
-          monthlyRate,
-          termMonths - i
-        );
-        interest = parseFloat((remaining * monthlyRate).toFixed(2));
-        principalPaid = parseFloat((payment - interest).toFixed(2));
-      }
-    } else if (amortizationType === "linear") {
-      principalPaid = parseFloat((principal / termMonths).toFixed(2));
-      interest = parseFloat((remaining * monthlyRate).toFixed(2));
-
-      payment = parseFloat((principalPaid + interest + sure).toFixed(2));
-    } else {
-      throw new Error("amortizationType must be annuity or linear");
-    }
-
-    // Guardar el saldo antes de pagar principal
-    const balanceBeforePayment = remaining;
-
-    // Actualizar remaining
-    remaining = parseFloat(Math.max(0, remaining - principalPaid).toFixed(2));
-
-    totalInterest += interest;
-    totalPaid += payment;
-
-    schedule.push({
-      period: i + 1,
-      dueDate: startDate
-        ? new Date(
-            new Date(startDate).setMonth(
-              new Date(startDate).getMonth() + (i + 1)
-            )
-          )
-            .toISOString()
-            .slice(0, 10)
-        : null,
-      payment,
-      principal: principalPaid,
-      interest,
-      balance: balanceBeforePayment,
-      sure: sure,
-    });
-  }
-
-  const totalPayments = schedule.reduce((sum, item) => sum + item.payment, 0);
-  const averagePayment = totalPayments / schedule.length;
-
-  const maxPayment = schedule.reduce((max, item) => {
-    return item.payment > max ? item.payment : max;
-  }, 0);
-
-  return {
-    schedule,
-    totals: {
-      totalPaid: parseFloat(totalPaid.toFixed(2)),
-      totalInterest: parseFloat(totalInterest.toFixed(2)),
-      monthlyPaymentApprox: maxPayment,
-    },
-    promedio: parseFloat(averagePayment.toFixed(2)),
-  };
-}
-
+// ===========================================================
+// CONTROLADOR: HACER SIMULACIÓN
+// ===========================================================
 exports.simulate = async (req, res) => {
   try {
     let {
@@ -504,8 +487,8 @@ exports.simulate = async (req, res) => {
       },
       ...result,
     };
-    
-   // Solo guardar si hay sesión activa
+
+    // Solo guardar si hay sesión activa
     if (req.decode || req.cookies?.token) {
       const userId = req.decode ? req.decode.id : null;
 
@@ -517,7 +500,7 @@ exports.simulate = async (req, res) => {
         amortizationType,
         result: result.totals,
         amortizationTable: result.schedule,
-        annualInterestRate: interestRate.baseRate
+        annualInterestRate: interestRate.baseRate,
       });
 
       await savedSimulation.save();
@@ -533,7 +516,6 @@ exports.simulate = async (req, res) => {
     return res.status(500).json({ error: err.message });
   }
 };
-
 
 // ===========================================================
 // CONTROLADOR: ACTUALIZAR ESTADO DE SIMULACIÓN Y CREAR PRÉSTAMO
@@ -596,3 +578,71 @@ exports.updateStatusSimulation = async (req, res) => {
     });
   }
 };
+
+// const evaluateBusinessRules = async (contextData) => {
+//   const rules = await BusinessRule.find({ isActive: true });
+
+//   const appliedRules = [];
+//   const failedApprovalRules = [];
+//   let approvalStatus = "aprobado";
+
+//   for (const rule of rules) {
+//     try {
+//       // Combinar contextData con los parámetros de la regla
+//       const data = { ...contextData, ...(rule.parameters || {}) };
+
+//       // 🔍 Extraer solo las variables usadas en la condición
+//       const usedVariables = [...new Set(rule.condition.match(/\b[A-Za-z_]\w*\b/g))].filter(
+//         (key) => Object.keys(data).includes(key)
+//       );
+
+//       // Crear un subconjunto solo con las variables usadas
+//       const relevantData = {};
+//       usedVariables.forEach((v) => (relevantData[v] = data[v]));
+
+//       // Crear función dinámica usando solo las variables necesarias
+//       const fn = new Function(...usedVariables, `return (${rule.condition});`);
+//       const passed = fn(...usedVariables.map((v) => relevantData[v]));
+
+//       // Generar texto con los valores reales de comparación
+//       const evaluatedCondition = rule.condition.replace(
+//         /\b[A-Za-z_]\w*\b/g,
+//         (key) =>
+//           relevantData.hasOwnProperty(key)
+//             ? typeof relevantData[key] === "string"
+//               ? `"${relevantData[key]}"`
+//               : relevantData[key]
+//             : key
+//       );
+
+//       const dataPreview = Object.entries(relevantData)
+//         .map(([k, v]) => `${k}: ${v}`)
+//         .join(", ");
+
+//       const ruleResult = {
+//         name: rule.name,
+//         condition: rule.condition,
+//         evaluated: `${evaluatedCondition} → ${passed}`,
+//         description: rule.description,
+//         type: rule.type,
+//         data: dataPreview,
+//       };
+
+//       if (passed) {
+//         appliedRules.push(ruleResult);
+//       } else if (rule.type === "approval") {
+//         failedApprovalRules.push(ruleResult);
+//         approvalStatus = "rechazado";
+//       }
+//     } catch (error) {
+//       console.error(`Error evaluando regla ${rule.name}:`, error.message);
+//     }
+//   }
+
+//   return {
+//     reglasEvaluadas: rules.length,
+//     reglasAplicadas: appliedRules,
+//     reglasFallidas: failedApprovalRules,
+//     approvalStatus,
+//   };
+// };

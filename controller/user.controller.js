@@ -1,24 +1,21 @@
-const riskProfile = require("../models/riskProfile.model");
 const userModel = require("../models/user.model");
 const bcrypt = require("bcrypt");
 
+// ---------------------------------------------
+// CREAR USUARIO
+// ---------------------------------------------
 exports.createUser = async (req, res) => {
   try {
     const data = req.body;
 
-    // Buscar si existe ya un owner
     const ownerExists = await userModel.findOne({ role: "owner" });
-    
-    //  Si no hay owner, el primer usuario será el owner
+
     if (!ownerExists) {
       data.role = "owner";
     } else {
-
-      // Si hay owner, verificamos si la petición viene autenticada (con token)
-      const creator = req.decode; // viene del JWT si la ruta está protegida
+      const creator = req.decode;
 
       if (creator) {
-        // El creador está autenticado → debe ser el owner para crear usuarios
         const creatorUser = await userModel.findById(creator.id);
 
         if (!creatorUser) {
@@ -33,15 +30,12 @@ exports.createUser = async (req, res) => {
             .json({ error: "Solo el owner puede crear usuarios internos" });
         }
 
-        // Si es el owner, puede crear admin o customer según envíe
         if (!data.role) data.role = "customer";
       } else {
-        // Registro público (sin token): crear cliente
         data.role = "customer";
       }
     }
 
-    // Crear usuario
     const user = new userModel(data);
     const saved = await user.save();
 
@@ -53,6 +47,9 @@ exports.createUser = async (req, res) => {
   }
 };
 
+// ---------------------------------------------
+// OBTENER USUARIOS
+// ---------------------------------------------
 exports.getUsers = async (req, res) => {
   try {
     let data = await userModel.find({}, "-password");
@@ -64,6 +61,9 @@ exports.getUsers = async (req, res) => {
   }
 };
 
+/// ---------------------------------------------
+// OBTENER UN USUARIO
+// ---------------------------------------------
 exports.getOneUser = async (req, res) => {
   try {
     const id = req.params.id;
@@ -79,6 +79,9 @@ exports.getOneUser = async (req, res) => {
   }
 };
 
+// ---------------------------------------------
+// ACTUALIZAR USUARIO
+// ---------------------------------------------
 exports.updateUser = async (req, res) => {
   try {
     let id = req.params.id;
@@ -95,29 +98,41 @@ exports.updateUser = async (req, res) => {
         data.password = await bcrypt.hash(data.password, salt);
       }
 
-      if (data.workProfile == 'empleado') {
-        if (!data.contractType || !data.employmentYears || !data.incomeMonthly) {
-            return res.status(400).json({ msj: "Faltan datos para perfil de empleado contractType, incomeMonthly o employmentYears" });
+      if (data.workProfile == "empleado") {
+        if (
+          !data.contractType ||
+          !data.employmentYears ||
+          !data.incomeMonthly
+        ) {
+          return res.status(400).json({
+            msj: "Faltan datos para perfil de empleado contractType, incomeMonthly o employmentYears",
+          });
         }
       }
 
-      if (data.workProfile == 'independiente') {
+      if (data.workProfile == "independiente") {
         if (!data.ocupacion || !data.incomeMonthly) {
-            return res.status(400).json({ msj: "Faltan datos para perfil de independiente ocupacion o incomeMonthly" });
+          return res.status(400).json({
+            msj: "Faltan datos para perfil de independiente ocupacion o incomeMonthly",
+          });
         }
-        if (data.ocupacion == 'profesional independiente') {
-            if (!data.profesion) {
-                return res.status(400).json({ msj: "Faltan datos para profesion de profesional independiente" });
-            }
-        }else if(data.ocupacion == 'comerciante' || data.ocupacion == 'rentista' || data.ocupacion == 'transportador'){
-            if (!data.nit || data.hasRUT) {
-                return res.status(400).json({
-                    msj: "Faltan datos para perfil"
-                })
-                
-            }
+        if (data.ocupacion == "profesional independiente") {
+          if (!data.profesion) {
+            return res.status(400).json({
+              msj: "Faltan datos para profesion de profesional independiente",
+            });
+          }
+        } else if (
+          data.ocupacion == "comerciante" ||
+          data.ocupacion == "rentista" ||
+          data.ocupacion == "transportador"
+        ) {
+          if (!data.nit || data.hasRUT) {
+            return res.status(400).json({
+              msj: "Faltan datos para perfil",
+            });
+          }
         }
-
       }
 
       let updateUser = await userModel.findByIdAndUpdate(
@@ -130,7 +145,6 @@ exports.updateUser = async (req, res) => {
         return res.status(404).json({ error: "Usuario no encontrado" });
       }
 
-      //   delete updatedUser.password;
       res.status(200).json({ msj: "usuario actualizado", data: updateUser });
     } else {
       res
@@ -142,6 +156,9 @@ exports.updateUser = async (req, res) => {
   }
 };
 
+// ---------------------------------------------
+// ELIMINAR USUARIO
+// ---------------------------------------------
 exports.deleteUser = async (req, res) => {
   try {
     const id = req.params.id;
@@ -195,88 +212,3 @@ exports.deleteUser = async (req, res) => {
       .json({ msj: "error al actualizar usuario", error: error.message });
   }
 };
-
-
-
-// exports.calculateCreditScore = async (req, res) => {
-//   try {
-//     const userId = req.decode.id;
-//     const user = await userModel.findById(userId);
-//     if (!user) return res.status(404).json({ msj: "Usuario no encontrado" });
-
-//     // Datos del usuario
-//     const income = user.incomeMonthly || 0;
-//     const age = user.age || 30;
-//     const activeLoans = user.activeLoans || 0;
-//     const paymentHistory = user.paymentHistory || [];
-//     const employmentYears = user.employmentYears || 0;
-//     const totalDebt = user.totalDebt || 0;
-
-//     // Ponderadores
-//     const weights = {
-//       income: 0.25,
-//       paymentHistory: 0.3,
-//       debtRatio: 0.2,
-//       stability: 0.1,
-//       age: 0.1,
-//       activeLoans: 0.05,
-//     };
-
-//     // Normalización
-//     const normalizedIncome = Math.min(income / 10_000_000, 1);
-//     const onTimePayments = paymentHistory.filter((p) => p.onTime).length;
-//     const paymentScore =
-//       paymentHistory.length > 0 ? onTimePayments / paymentHistory.length : 0.5;
-//     const debtRatio = totalDebt / (income * 12);
-//     const normalizedDebtRatio = 1 - Math.min(debtRatio, 1);
-//     const stabilityScore = Math.min(employmentYears / 10, 1);
-//     const ageScore = age < 21 ? 0.3 : age > 60 ? 0.6 : 0.8;
-//     const loanPenalty = activeLoans > 3 ? 0.5 : 1 - activeLoans * 0.1;
-
-//     // Score base
-//     const baseScore =
-//       normalizedIncome * weights.income +
-//       paymentScore * weights.paymentHistory +
-//       normalizedDebtRatio * weights.debtRatio +
-//       stabilityScore * weights.stability +
-//       ageScore * weights.age +
-//       loanPenalty * weights.activeLoans;
-
-//     // Escalar a rango 300–900
-//     const finalScore = Math.round(300 + baseScore * 600);
-
-//     // Buscar perfil de riesgo correspondiente
-//     const RiskProfile = await riskProfile.findOne({
-//       minScore: { $lte: finalScore },
-//       maxScore: { $gte: finalScore },
-//       isActive: true,
-//     });
-
-//     // Asignar categoría o default
-//     user.creditScore = finalScore;
-//     user.profile = RiskProfile ? RiskProfile.category : "C";
-
-//     await user.save();
-
-//     res.status(200).json({
-//       msj: "Credit score calculado exitosamente",
-//       creditScore: finalScore,
-//       perfilAsignado: RiskProfile
-//         ? RiskProfile.category
-//         : "Sin perfil definido",
-//       detalles: {
-//         ingreso: normalizedIncome.toFixed(2),
-//         historialPago: paymentScore.toFixed(2),
-//         deuda: normalizedDebtRatio.toFixed(2),
-//         estabilidad: stabilityScore.toFixed(2),
-//         edad: ageScore.toFixed(2),
-//         penalizaciónPorPréstamos: loanPenalty.toFixed(2),
-//       },
-//     });
-//   } catch (error) {
-//     res.status(500).json({
-//       msj: "Error al calcular credit score",
-//       error: error.message,
-//     });
-//   }
-// };

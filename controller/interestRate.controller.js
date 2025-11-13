@@ -1,5 +1,3 @@
-// controllers/interestRate.controller.js
-
 const InterestRateModel = require("../models/InterestRate.model");
 
 /* ===========================================================

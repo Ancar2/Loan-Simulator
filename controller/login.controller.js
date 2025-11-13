@@ -2,6 +2,10 @@ const userModel = require("../models/user.model");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 
+// ---------------------------------------------
+// CONTROLADOR DE LOGIN
+// ---------------------------------------------
+
 exports.login = async (req, res) => {
   try {
     let data = req.body;
@@ -27,15 +31,15 @@ exports.login = async (req, res) => {
 
         res.cookie("token", token, {
           httpOnly: true,
-          secure: false,// cambiar a true en producción con HTTPS
+          secure: false, // cambiar a true en producción con HTTPS
           sameSite: "lax",
-        //   maxAge: 1000 * 60 * 60, //1H
-          maxAge: 1000 * 60 * 60 * 24 // 24 horas
-
+          //   maxAge: 1000 * 60 * 60, //1H
+          maxAge: 1000 * 60 * 60 * 24, // 24 horas
         });
 
-        res.status(200).json({ Welcome: `${user.name + " " + user.lastName}`, token });
-
+        res
+          .status(200)
+          .json({ Welcome: `${user.name + " " + user.lastName}`, token });
       } else {
         return res.status(401).json({ error: "password incorrecto" });
       }

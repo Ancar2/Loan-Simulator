@@ -1,9 +1,8 @@
 const RiskProfile = require("../models/riskProfile.model");
 
-/**
- * Crear un nuevo perfil de riesgo
- * Solo owner o admin pueden hacerlo
- */
+// ---------------------------------------------
+// CREAR PERFIL DE RIESGO
+// ---------------------------------------------
 exports.createRiskProfile = async (req, res) => {
   try {
     const { role } = req.decode;
@@ -40,9 +39,9 @@ exports.createRiskProfile = async (req, res) => {
   }
 };
 
-/**
- * Obtener todos los perfiles de riesgo
- */
+// ---------------------------------------------
+// OBTENER PERFILES DE RIESGO
+// ---------------------------------------------
 exports.getRiskProfiles = async (req, res) => {
   try {
     const profiles = await RiskProfile.find();
@@ -50,13 +49,16 @@ exports.getRiskProfiles = async (req, res) => {
   } catch (error) {
     res
       .status(500)
-      .json({ msj: "Error al obtener perfiles de riesgo", error: error.message });
+      .json({
+        msj: "Error al obtener perfiles de riesgo",
+        error: error.message,
+      });
   }
 };
 
-/**
- * Obtener un perfil de riesgo por ID
- */
+// ---------------------------------------------
+// OBTENER PERFIL DE RIESGO POR ID
+// ---------------------------------------------
 exports.getRiskProfileById = async (req, res) => {
   try {
     const id = req.params.id;
@@ -72,10 +74,9 @@ exports.getRiskProfileById = async (req, res) => {
   }
 };
 
-/**
- * Actualizar un perfil de riesgo
- * Solo owner o admin
- */
+// ---------------------------------------------
+// ACTUALIZAR PERFILE DE RIESGO
+// ---------------------------------------------
 exports.updateRiskProfile = async (req, res) => {
   try {
     const { role } = req.decode;
@@ -89,7 +90,9 @@ exports.updateRiskProfile = async (req, res) => {
     const id = req.params.id;
     const data = req.body;
 
-    const updated = await RiskProfile.findByIdAndUpdate(id, data, { new: true });
+    const updated = await RiskProfile.findByIdAndUpdate(id, data, {
+      new: true,
+    });
     if (!updated)
       return res.status(404).json({ msj: "Perfil de riesgo no encontrado" });
 
@@ -101,10 +104,9 @@ exports.updateRiskProfile = async (req, res) => {
   }
 };
 
-/**
- * Eliminar un perfil de riesgo
- * Solo owner o admin
- */
+// ---------------------------------------------
+// ELIMINAR PERFILES DE RIESGO
+// ---------------------------------------------
 exports.deleteRiskProfile = async (req, res) => {
   try {
     const { role } = req.decode;
@@ -126,41 +128,5 @@ exports.deleteRiskProfile = async (req, res) => {
     res
       .status(500)
       .json({ msj: "Error al eliminar perfil", error: error.message });
-  }
-};
-
-/**
- * Obtener perfil según creditScore
- * Abierto a todos (clientes y admins)
- */
-exports.getProfileByCreditScore = async (req, res) => {
-  try {
-    const { score } = req.params;
-    const numericScore = parseInt(score);
-
-    if (isNaN(numericScore)) {
-      return res.status(400).json({ msj: "El puntaje debe ser numérico" });
-    }
-
-    const profile = await RiskProfile.findOne({
-      minScore: { $lte: numericScore },
-      maxScore: { $gte: numericScore },
-      isActive: true,
-    });
-
-    if (!profile) {
-      return res.status(404).json({
-        msj: `No se encontró perfil de riesgo para el puntaje ${numericScore}`,
-      });
-    }
-
-    res.status(200).json({
-      msj: "Perfil de riesgo encontrado",
-      data: profile,
-    });
-  } catch (error) {
-    res
-      .status(500)
-      .json({ msj: "Error al buscar perfil por puntaje", error: error.message });
   }
 };

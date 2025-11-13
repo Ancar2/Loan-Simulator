@@ -1,6 +1,10 @@
 const BusinessRule = require("../models/businessRule.model");
 
-/* CREAR REGLA */
+
+// ---------------------------------------------
+// CREAR REGLA
+// ---------------------------------------------
+
 exports.createBusinessRule = async (req, res) => {
   try {
     const rule = new BusinessRule({
@@ -21,7 +25,10 @@ exports.createBusinessRule = async (req, res) => {
   }
 };
 
-/* LISTAR REGLAS */
+// ---------------------------------------------
+// LISTAR REGLAS
+// ---------------------------------------------
+
 exports.getAllBusinessRules = async (req, res) => {
   try {
     const rules = await BusinessRule.find();
@@ -38,7 +45,11 @@ exports.getAllBusinessRules = async (req, res) => {
   }
 };
 
-/*  OBTENER REGLA POR ID */
+
+// ---------------------------------------------
+//  OBTENER REGLA POR ID
+// ---------------------------------------------
+ 
 exports.getBusinessRuleById = async (req, res) => {
   try {
     const rule = await BusinessRule.findById(req.params.id);
@@ -54,7 +65,9 @@ exports.getBusinessRuleById = async (req, res) => {
   }
 };
 
-/*  ACTUALIZAR REGLA */
+// ---------------------------------------------
+//  ACTUALIZAR REGLA POR ID
+// ---------------------------------------------
 exports.updateBusinessRule = async (req, res) => {
   try {
     const updated = await BusinessRule.findByIdAndUpdate(
@@ -81,7 +94,9 @@ exports.updateBusinessRule = async (req, res) => {
   }
 };
 
-/* ELIMINAR (lógico)*/
+// ---------------------------------------------
+//  ELIMINAR REGLA POR ID
+// ---------------------------------------------
 exports.deleteBusinessRule = async (req, res) => {
   try {
     const deleted = await BusinessRule.findByIdAndUpdate(
@@ -103,70 +118,4 @@ exports.deleteBusinessRule = async (req, res) => {
       error: error.message,
     });
   }
-};
-
-/* EVALUAR SIMULACIÓN */
-exports.evaluateRules = async (req, res) => {
-  try {
-    // Datos de la simulación enviados por el frontend
-    const simulation = req.body; 
-    // Ejemplo esperado:
-    // { creditScore: 720, incomeMonthly: 4000000, amount: 5000000 }
-
-    // Buscar reglas activas y aplicables
-    const rules = await BusinessRule.find({ isActive: true });
-
-    const results = rules.map(rule => {
-      let passed = false;
-      try {
-        // Evaluar condición con los datos de la simulación
-        // ⚠️ Seguridad: eval se usa aquí solo como ejemplo.
-        // En producción, debe reemplazarse por un parser seguro o librería tipo "expr-eval".
-        const fn = new Function(
-          ...Object.keys(simulation),
-          `return (${rule.condition});`
-        );
-        passed = fn(...Object.values(simulation));
-      } catch (e) {
-        passed = false;
-      }
-
-      return {
-        ruleName: rule.name,
-        description: rule.description,
-        passed,
-        category: rule.riskCategory,
-        adjustment: rule.interestRateAdjustment,
-      };
-    });
-
-    const passedRules = results.filter(r => r.passed);
-    const failedRules = results.filter(r => !r.passed);
-
-    // Ajuste de tasa acumulado
-    const totalAdjustment = passedRules.reduce(
-      (acc, r) => acc + (r.adjustment || 0),
-      0
-    );
-
-    res.status(200).json({
-      msj: "Evaluación completada",
-      totalRules: rules.length,
-      passed: passedRules.length,
-      failed: failedRules.length,
-      totalAdjustment,
-      details: results,
-    });
-  } catch (error) {
-    res.status(500).json({
-      msj: "Error al evaluar las reglas",
-      error: error.message,
-    });
-  }
-
-//  body
-// {
-//   "creditScore": 720,
-//   "incomeMonthly": 4000000
-// }
 };
