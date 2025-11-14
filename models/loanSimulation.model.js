@@ -9,6 +9,19 @@ const loanSimulationSchema = mongoose.Schema(
       description: "Referencia al usuario que realiza la simulación",
     },
 
+    riskProfileId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "riskProfile",
+      description:
+        "Referencia al perfil de riesgo que aplicó a esta simulación",
+    },
+
+    interestRateId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "interestRate",
+      description: "Referencia a la tasa de interés utilizada en la simulación",
+    },
+
     amount: {
       type: Number,
       required: true,
@@ -67,13 +80,6 @@ const loanSimulationSchema = mongoose.Schema(
       type: String,
       enum: ["A", "B", "C"],
       description: "Categoría de riesgo del usuario en esta simulación",
-    },
-
-    riskProfileId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "riskProfile",
-      description:
-        "Referencia al perfil de riesgo que aplicó a esta simulación",
     },
 
     approvalStatus: {

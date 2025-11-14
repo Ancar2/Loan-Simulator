@@ -499,6 +499,7 @@ exports.simulate = async (req, res) => {
         result: result.totals,
         amortizationTable: result.schedule,
         annualInterestRate: interestRate.baseRate,
+        interestRate: interestRate._id,
       });
 
       await savedSimulation.save();

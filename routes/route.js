@@ -9,8 +9,11 @@ const businessRuleController = require("../controller/bussinessRule.controller")
 const loanSimulationController = require("../controller/loanSimulation.controller");
 const interestRateController = require("../controller/interestRate.controller");
 
+
 // Ruta pública (clientes se registran)
 router.post("/register", userController.createUser);
+
+
 // Ruta pública (login)
 router.post("/login", login)
 
@@ -24,9 +27,9 @@ router.delete('/users/delete/:id',middlewareJWT, userController.deleteUser)
 
 
 //rutas de perfiles de riesgo   
-router.get("/riskprofiles", riskProfileController.getRiskProfiles);// Consultar todos los perfiles
-router.get("/riskprofiles/:id", riskProfileController.getRiskProfileById);// Consultar perfil por ID
-router.get("/riskprofile/score/:score", riskProfileController.getProfileByCreditScore);// Consultar perfil por credit score
+router.get("/riskprofiles", riskProfileController.getRiskProfiles);
+router.get("/riskprofiles/:id", riskProfileController.getRiskProfileById);
+router.get("/riskprofile/score/:score", riskProfileController.getProfileByCreditScore);
 router.post("/riskprofiles/create", middlewareJWT, riskProfileController.createRiskProfile);
 router.put("/riskprofiles/update/:id", middlewareJWT, riskProfileController.updateRiskProfile);
 router.delete("/riskprofiles/delete/:id", middlewareJWT, riskProfileController.deleteRiskProfile);
@@ -40,10 +43,12 @@ router.post("/businessrules/create", middlewareJWT, businessRuleController.creat
 router.put("/businessrules/update/:id", middlewareJWT, businessRuleController.updateBusinessRule);
 router.delete("/businessrules/delete/:id", middlewareJWT, businessRuleController.deleteBusinessRule);
 
+
 //rutas de simulaciones de préstamo
 router.post('/simulate',middlewareJWT, loanSimulationController.simulate);
 router.post("/calculateScore/:idSimulacion", middlewareJWT, loanSimulationController.calculateCreditScore);
 router.post('/accept/loan/:idSimulacion',middlewareJWT, loanSimulationController.updateStatusSimulation);
+
 
 //rutas de tasa de interés
 router.post("/interest_rates/create", middlewareJWT, interestRateController.createInterestRate);
@@ -51,7 +56,6 @@ router.get("/interest_rates", middlewareJWT, interestRateController.getInterestR
 router.get("/interest_rates/:id", middlewareJWT, interestRateController.getInterestRateById);
 router.put("/interest_rates/update/:id", middlewareJWT, interestRateController.updateInterestRate);
 router.delete("/interest_rates/delete/:id", middlewareJWT, interestRateController.deleteInterestRate);
-
 
 
 module.exports = router;

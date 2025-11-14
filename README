@@ -1,0 +1,170 @@
+
+# **Simulator – Loan Simulation API**
+
+API para simulación de préstamos, validación dinámica de reglas, perfiles de riesgo y procesos de aprobación automática. Permite simulaciones sin autenticación y, tras el login, habilita validaciones avanzadas basadas en reglas y parámetros de negocio configurables.
+
+---
+
+## **Descripción General**
+
+Este proyecto implementa una API modular orientada a instituciones financieras y plataformas fintech.
+Ofrece un flujo completo de:
+
+* Simulación de créditos con diferentes métodos de amortización
+* Evaluación de reglas de negocio mediante expresiones dinámicas
+* Determinación de perfiles de riesgo
+* Proceso de aprobación o rechazo basado en reglas
+* Generación y almacenamiento de solicitudes de préstamo aprobadas
+* Auditoría de acciones del usuario
+
+Su arquitectura está diseñada para ser extensible, desacoplada y segura.
+
+---
+
+## **Tecnologías Utilizadas**
+
+* Node.js
+* Express 5
+* MongoDB con Mongoose
+* JSON Web Tokens (JWT)
+* Bcrypt para encriptación de contraseñas
+* expr-eval para evaluación de expresiones dinámicas en reglas
+* Cookie-parser
+* Dotenv
+
+**Dependencias exactas:**
+
+```json
+"dependencies": {
+  "bcrypt": "^6.0.0",
+  "cookie-parser": "^1.4.7",
+  "dotenv": "^17.2.3",
+  "expr-eval": "^2.0.2",
+  "express": "^5.1.0",
+  "jsonwebtoken": "^9.0.2",
+  "mongoose": "^8.19.3"
+}
+```
+
+---
+
+## **Requisitos Previos**
+
+* Node.js
+* MongoDB (local o Atlas)
+* Archivo `.env` configurado
+* npm o pnpm
+
+---
+
+## **Variables de Entorno**
+
+```
+PORT=
+DB_URL=
+SECRET_JWT_KEY=
+TOKEN_EXPIRE=
+```
+
+---
+
+## **Instalación y Ejecución**
+
+```bash
+npm install
+npm run dev
+```
+
+El servidor se iniciará en el puerto definido en las variables de entorno.
+
+---
+
+## **Estructura del Proyecto**
+
+```
+Api simulador/
+├── config/
+│   └── db.js
+├── controller/
+│   ├── bussinessRule.controller.js
+│   ├── interestRate.controller.js
+│   ├── loanSimulation.controller.js
+│   ├── login.controller.js
+│   ├── riskProfile.controller.js
+│   └── user.controller.js
+├── index.js
+├── middleware/
+│   └── jwt.js
+├── models/
+│   ├── auditLog.model.js
+│   ├── businessRule.model.js
+│   ├── InterestRate.model.js
+│   ├── loans.model.js
+│   ├── loanSimulation.model.js
+│   ├── riskProfile.model.js
+│   └── user.model.js
+└── routes/
+    └── route.js
+```
+
+---
+
+## **Modelado**
+
+![UML](./Diagram.png)
+
+## **Funciones Principales del Sistema**
+
+### Simulación sin autenticación
+
+Permite realizar una simulación básica ingresando monto, plazo, tasa y tipo de amortización.
+
+### Simulación con autenticación
+
+El usuario autenticado accede a validaciones avanzadas:
+
+* Aplicación de reglas configurables
+* Evaluación de perfil de riesgo
+* Cálculo de score
+* Determinación automática de aprobación o rechazo
+
+### Evaluación dinámica de reglas
+
+Las reglas se almacenan en base de datos y se evalúan mediante **expr-eval**, permitiendo:
+
+* Fórmulas personalizadas
+* Condiciones complejas
+* Modificación sin necesidad de despliegue
+
+### Tasas de interés configurables
+
+El sistema utiliza un modelo robusto de tasas que soporta:
+
+* Tipos variable y fija
+* Volatilidad
+* Rangos mínimo y máximo
+* Periodos de vigencia
+
+### Generación de préstamos aprobados
+
+En caso de aprobación, el sistema:
+
+* Registra el préstamo en la colección `loans`
+* Asigna fecha de inicio
+* Guarda reglas aplicadas, perfil de riesgo y score
+
+### Seguridad
+
+* Autenticación con JWT
+* Tokens enviados en cookies HTTP-only
+* Contraseñas encriptadas con Bcrypt
+* Validación de sesión mediante middleware personalizado
+
+---
+
+## **Licencia**
+
+Proyecto privado. Su uso está restringido.
+
+---
+

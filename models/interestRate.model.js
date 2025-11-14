@@ -44,5 +44,5 @@ const interestRateSchema = mongoose.Schema({
     default: 0 
   }
 });
-const InterestRateModel = mongoose.model('InterestRate', interestRateSchema);
+const InterestRateModel = mongoose.model('interestRate', interestRateSchema);
 module.exports = InterestRateModel;
