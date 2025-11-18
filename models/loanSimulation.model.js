@@ -5,7 +5,6 @@ const loanSimulationSchema = mongoose.Schema(
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "user",
-      required: true,
       description: "Referencia al usuario que realiza la simulación",
     },
 

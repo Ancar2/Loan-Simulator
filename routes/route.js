@@ -29,7 +29,6 @@ router.delete('/users/delete/:id',middlewareJWT, userController.deleteUser)
 //rutas de perfiles de riesgo   
 router.get("/riskprofiles", riskProfileController.getRiskProfiles);
 router.get("/riskprofiles/:id", riskProfileController.getRiskProfileById);
-router.get("/riskprofile/score/:score", riskProfileController.getProfileByCreditScore);
 router.post("/riskprofiles/create", middlewareJWT, riskProfileController.createRiskProfile);
 router.put("/riskprofiles/update/:id", middlewareJWT, riskProfileController.updateRiskProfile);
 router.delete("/riskprofiles/delete/:id", middlewareJWT, riskProfileController.deleteRiskProfile);
@@ -38,14 +37,13 @@ router.delete("/riskprofiles/delete/:id", middlewareJWT, riskProfileController.d
 // rutas de reglas de negocio
 router.get("/businessrules", businessRuleController.getAllBusinessRules);
 router.get("/businessrules/:id", businessRuleController.getBusinessRuleById);
-router.post("/businessrules/evaluate", middlewareJWT, businessRuleController.evaluateRules);
 router.post("/businessrules/create", middlewareJWT, businessRuleController.createBusinessRule);
 router.put("/businessrules/update/:id", middlewareJWT, businessRuleController.updateBusinessRule);
 router.delete("/businessrules/delete/:id", middlewareJWT, businessRuleController.deleteBusinessRule);
 
 
 //rutas de simulaciones de préstamo
-router.post('/simulate',middlewareJWT, loanSimulationController.simulate);
+router.post('/simulate', loanSimulationController.simulate);
 router.post("/calculateScore/:idSimulacion", middlewareJWT, loanSimulationController.calculateCreditScore);
 router.post('/accept/loan/:idSimulacion',middlewareJWT, loanSimulationController.updateStatusSimulation);
 
