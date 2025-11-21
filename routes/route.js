@@ -20,8 +20,8 @@ router.post("/login", login)
 
 //rutas de usuario
 router.post("/users/create", middlewareJWT, userController.createUser);
-router.get('/users', userController.getUsers)
-router.get('/users/:id', userController.getOneUser)
+router.get('/users',middlewareJWT, userController.getUsers)
+router.get('/users/:id', middlewareJWT, userController.getOneUser)
 router.put('/users/update/:id',middlewareJWT, userController.updateUser)
 router.delete('/users/delete/:id',middlewareJWT, userController.deleteUser)
 
