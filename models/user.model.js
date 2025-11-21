@@ -60,6 +60,12 @@ const userSchema = mongoose.Schema(
       default: "customer",
     },
 
+    photo: {
+      type: String,
+      default:
+        "https://i.pravatar.cc/120",
+    },
+
     //informacion personal
     gender: {
       type: String,
