@@ -170,12 +170,12 @@ const buildAmortizationSchedule = ({
       period: i + 1,
       dueDate: startDate
         ? new Date(
-            new Date(startDate).setMonth(
-              new Date(startDate).getMonth() + (i + 1)
-            )
+          new Date(startDate).setMonth(
+            new Date(startDate).getMonth() + (i + 1)
           )
-            .toISOString()
-            .slice(0, 10)
+        )
+          .toISOString()
+          .slice(0, 10)
         : null,
       payment,
       principal: principalPaid,
@@ -475,19 +475,19 @@ exports.simulate = async (req, res) => {
       });
     }
 
- const responseData = {
-  requested: {
-    amount: principal,
-    termMonths: n,
-    amortizationType,
-    rateType,
-    annualRate,
-  },
-  ...result,
-  // Agregar seguroVida directamente desde el primer schedule
-  sure: result.schedule?.[0]?.sure ?? 0,
-  seguroVida: amount * 0.001435
-};
+    const responseData = {
+      requested: {
+        amount: principal,
+        termMonths: n,
+        amortizationType,
+        rateType,
+        annualRate,
+      },
+      ...result,
+
+      sure: result.schedule?.[0]?.sure ?? 0,
+      seguroVida: amount * 0.001435
+    };
 
 
     // Solo guardar si hay sesión activa
