@@ -57,7 +57,10 @@ const loanSchema = mongoose.Schema({
     type: Array, 
     default: [] 
   },
-
+  sure: { 
+    type: Number, 
+    default: 0 
+  },
   createdAt: { 
     type: Date, 
     default: Date.now 

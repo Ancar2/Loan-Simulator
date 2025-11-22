@@ -444,7 +444,7 @@ exports.simulate = async (req, res) => {
           amortizationType,
           fixedPayment: true,
           startDate,
-          sure: interestRate.sure,
+          sure: interestRate.sure * amount,
         });
       } else if (rateType === "variable") {
         // cuota fija, tasa variable
@@ -455,14 +455,14 @@ exports.simulate = async (req, res) => {
           amortizationType,
           fixedPayment: true,
           startDate,
-          sure: interestRate.sure,
+          sure: interestRate.sure * amount,
         });
         //  cuota variable + tasa variable → fixedPayment: false
         // result = buildAmortizationSchedule({ principal, termMonths: n, annualRate, amortizationType, fixedPayment: false, startDate });
       }
     } else if (amortizationType === "linear") {
       // siempre cuota variable, aunque la tasa sea fija o variable
-      console.log(interestRate.sure);
+      console.log(interestRate.sure * amount);
 
       result = buildAmortizationSchedule({
         principal,
@@ -471,7 +471,7 @@ exports.simulate = async (req, res) => {
         amortizationType,
         fixedPayment: false,
         startDate,
-        sure: interestRate.sure,
+        sure: interestRate.sure * amount,
       });
     }
 
