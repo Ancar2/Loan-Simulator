@@ -500,6 +500,7 @@ exports.simulate = async (req, res) => {
         amortizationTable: result.schedule,
         annualInterestRate: interestRate.baseRate,
         interestRate: interestRate._id,
+        sure:result.sure
       });
 
       await savedSimulation.save();
