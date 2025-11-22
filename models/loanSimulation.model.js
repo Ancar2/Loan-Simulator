@@ -116,7 +116,10 @@ const loanSimulationSchema = mongoose.Schema(
       type: Array,
       description: "Resultado de la simulación",
     },
-
+    sure: {
+      type: Number,
+      default: 0,
+    },
     createdAt: {
       type: Date,
       default: Date.now,
