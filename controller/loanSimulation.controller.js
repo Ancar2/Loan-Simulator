@@ -482,6 +482,7 @@ exports.simulate = async (req, res) => {
         amortizationType,
         rateType,
         annualRate,
+        sure: interestRate.sure*amount,
       },
       ...result,
     };
