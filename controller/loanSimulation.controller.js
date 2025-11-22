@@ -475,16 +475,20 @@ exports.simulate = async (req, res) => {
       });
     }
 
-    const responseData = {
-      requested: {
-        amount: principal,
-        termMonths: n,
-        amortizationType,
-        rateType,
-        annualRate,
-      },
-      ...result,
-    };
+ const responseData = {
+  requested: {
+    amount: principal,
+    termMonths: n,
+    amortizationType,
+    rateType,
+    annualRate,
+  },
+  ...result,
+  // Agregar seguroVida directamente desde el primer schedule
+  sure: result.schedule?.[0]?.sure ?? 0,
+  seguroVida: amount * 0.001435
+};
+
 
     // Solo guardar si hay sesión activa
     if (req.decode || req.cookies?.token) {
