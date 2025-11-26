@@ -17,6 +17,11 @@ exports.createInterestRate = async (req, res) => {
       sure
     } = req.body;
 
+    let tasas = await InterestRateModel.find({type: type});
+    if (tasas) {
+      return res.status(400).json({ error: `ya existe una tasa de interes de tipo ${type}` });
+    }
+
     if (!type || !["fixed", "variable"].includes(type)) {
       return res
         .status(400)
@@ -76,7 +81,7 @@ exports.getInterestRates = async (req, res) => {
 =========================================================== */
 exports.getInterestRateById = async (req, res) => {
   try {
-    const rate = await InterestRate.findById(req.params.id);
+    const rate = await InterestRateModel.findById(req.params.id);
     if (!rate) return res.status(404).json({ error: "Tasa no encontrada" });
     res.status(200).json(rate);
   } catch (err) {
@@ -98,9 +103,10 @@ exports.updateInterestRate = async (req, res) => {
       maxRate,
       startDate,
       endDate,
+      sure
     } = req.body;
 
-    const updatedRate = await InterestRate.findByIdAndUpdate(
+    const updatedRate = await InterestRateModel.findByIdAndUpdate(
       req.params.id,
       {
         ...(type && { type }),
@@ -109,6 +115,7 @@ exports.updateInterestRate = async (req, res) => {
         ...(volatility !== undefined && { volatility }),
         ...(minRate !== undefined && { minRate }),
         ...(maxRate !== undefined && { maxRate }),
+        ...(sure !== undefined && { sure }),
         ...(startDate && { startDate: new Date(startDate) }),
         ...(endDate && { endDate: new Date(endDate) }),
       },
@@ -131,7 +138,7 @@ exports.updateInterestRate = async (req, res) => {
 =========================================================== */
 exports.deleteInterestRate = async (req, res) => {
   try {
-    const deleted = await InterestRate.findByIdAndDelete(req.params.id);
+    const deleted = await InterestRateModel.findByIdAndDelete(req.params.id);
     if (!deleted) return res.status(404).json({ error: "Tasa no encontrada" });
     res.status(200).json({ message: "Tasa eliminada correctamente" });
   } catch (err) {

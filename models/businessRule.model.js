@@ -23,11 +23,19 @@ const businessRuleSchema = mongoose.Schema(
       description: "Tipo de regla (para agrupación lógica)",
     },
 
-    condition: {
-      type: String,
-      required: true,
-      description: "Expresión lógica en formato texto o fórmula, por ejemplo: 'creditScore >= 700 && incomeMonthly > 3000000'",
-    },
+    // condition: {
+    //   type: String,
+    //   required: true,
+    //   description: "Expresión lógica en formato texto o fórmula, por ejemplo: 'creditScore >= 700 && incomeMonthly > 3000000'",
+    // },
+    condition: [
+    {
+      logic: { type: String, enum: ["AND", "OR", ""], default: "" },
+      field: String,
+      operator: String,
+      value: String,
+    }
+  ],
 
     parameters: {
       type: Object,
