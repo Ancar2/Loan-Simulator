@@ -44,7 +44,7 @@ const loanSimulationSchema = mongoose.Schema(
 
     amortizationType: {
       type: String,
-      enum: ["annuity", "fixed"],
+      enum: ["annuity", "linear"],
       required: true,
       description: "Tipo de amortización (annuity o fixed)",
     },

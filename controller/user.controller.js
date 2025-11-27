@@ -161,7 +161,7 @@ exports.updateUser = async (req, res) => {
         .json({ msj: "no tienes permiso para actualizar este usuario" });
     }
   } catch (error) {
-    res.status(500).json(error);
+    res.status(500).json(error.message);
   }
 };
 
