@@ -9,6 +9,69 @@ const loanModel = require("../models/loans.model");
 // ---------------------------------------------
 // FUNCIÓN AUXILIAR: Evaluar reglas de negocio
 // ---------------------------------------------
+// const evaluateBusinessRules = async (contextData) => {
+//   const rules = await BusinessRule.find({ isActive: true });
+
+//   const appliedRules = [];
+//   const failedApprovalRules = [];
+//   let approvalStatus = "aprobado";
+
+//   for (const rule of rules) {
+//     try {
+//       const data = { ...contextData, ...(rule.parameters || {}) };
+
+//       const usedVariables = [
+//         ...new Set(rule.condition.match(/\b[A-Za-z_]\w*\b/g)),
+//       ].filter((key) => Object.keys(data).includes(key));
+
+//       const relevantData = {};
+//       usedVariables.forEach((v) => (relevantData[v] = data[v]));
+
+//       const parser = new Parser();
+//       const expression = parser.parse(rule.condition);
+//       const passed = expression.evaluate(relevantData);
+
+//       const evaluatedCondition = rule.condition.replace(
+//         /\b[A-Za-z_]\w*\b/g,
+//         (key) =>
+//           relevantData.hasOwnProperty(key)
+//             ? typeof relevantData[key] === "string"
+//               ? `"${relevantData[key]}"`
+//               : relevantData[key]
+//             : key
+//       );
+
+//       const dataPreview = Object.entries(relevantData)
+//         .map(([k, v]) => `${k}: ${v}`)
+//         .join(", ");
+
+//       const ruleResult = {
+//         name: rule.name,
+//         condition: rule.condition,
+//         evaluated: `${evaluatedCondition} → ${passed}`,
+//         description: rule.description,
+//         type: rule.type,
+//         data: dataPreview,
+//       };
+
+//       if (passed) {
+//         appliedRules.push(ruleResult);
+//       } else if (rule.type === "approval") {
+//         failedApprovalRules.push(ruleResult);
+//         approvalStatus = "rechazado";
+//       }
+//     } catch (error) {
+//       console.error(`Error evaluando regla ${rule.name}:`, error.message);
+//     }
+//   }
+
+//   return {
+//     reglasEvaluadas: rules.length,
+//     reglasAplicadas: appliedRules,
+//     reglasFallidas: failedApprovalRules,
+//     approvalStatus,
+//   };
+// };
 const evaluateBusinessRules = async (contextData) => {
   const rules = await BusinessRule.find({ isActive: true });
 
@@ -18,43 +81,40 @@ const evaluateBusinessRules = async (contextData) => {
 
   for (const rule of rules) {
     try {
-      const data = { ...contextData, ...(rule.parameters || {}) };
+      let resultado = null;
+      let evaluatedParts = [];
 
-      const usedVariables = [
-        ...new Set(rule.condition.match(/\b[A-Za-z_]\w*\b/g)),
-      ].filter((key) => Object.keys(data).includes(key));
+      const conditions = rule.conditions || rule.condition || [];
 
-      const relevantData = {};
-      usedVariables.forEach((v) => (relevantData[v] = data[v]));
+      for (let i = 0; i < conditions.length; i++) {
+        const c = conditions[i];
 
-      const parser = new Parser();
-      const expression = parser.parse(rule.condition);
-      const passed = expression.evaluate(relevantData);
+        const left = contextData[c.field];
+        const right = castValue(c.value);
 
-      const evaluatedCondition = rule.condition.replace(
-        /\b[A-Za-z_]\w*\b/g,
-        (key) =>
-          relevantData.hasOwnProperty(key)
-            ? typeof relevantData[key] === "string"
-              ? `"${relevantData[key]}"`
-              : relevantData[key]
-            : key
-      );
+        const passed = evaluarComparacion(left, c.operator, right);
 
-      const dataPreview = Object.entries(relevantData)
-        .map(([k, v]) => `${k}: ${v}`)
-        .join(", ");
+        evaluatedParts.push(
+          `${c.field} (${left}) ${c.operator} ${right} => ${passed}`
+        );
+
+        if (i === 0) {
+          resultado = passed;
+        } else if (c.logic === "AND") {
+          resultado = resultado && passed;
+        } else if (c.logic === "OR") {
+          resultado = resultado || passed;
+        }
+      }
 
       const ruleResult = {
         name: rule.name,
-        condition: rule.condition,
-        evaluated: `${evaluatedCondition} → ${passed}`,
         description: rule.description,
         type: rule.type,
-        data: dataPreview,
+        evaluated: evaluatedParts.join("  |  "),
       };
 
-      if (passed) {
+      if (resultado) {
         appliedRules.push(ruleResult);
       } else if (rule.type === "approval") {
         failedApprovalRules.push(ruleResult);
@@ -72,6 +132,32 @@ const evaluateBusinessRules = async (contextData) => {
     approvalStatus,
   };
 };
+
+function evaluarComparacion(a, op, b) {
+  switch (op) {
+    case "==":
+      return a == b;
+    case "!=":
+      return a != b;
+    case ">":
+      return a > b;
+    case ">=":
+      return a >= b;
+    case "<":
+      return a < b;
+    case "<=":
+      return a <= b;
+    default:
+      return false;
+  }
+}
+
+function castValue(value) {
+  if (!isNaN(value)) return Number(value);
+  if (value === "true") return true;
+  if (value === "false") return false;
+  return value;
+}
 
 // ---------------------------------------------
 // FUNCIONES AUXILIARES DE AMORTIZACIÓN
@@ -345,7 +431,7 @@ exports.calculateCreditScore = async (req, res) => {
     await simulacion.save();
 
     // ------------------------------
-    // 🔴 Si la simulación fue rechazada, eliminarla
+    //  Si la simulación fue rechazada, eliminarla
     // ------------------------------
     if (rulesEvaluation.approvalStatus === "rechazado") {
       await LoanSimulationModel.findByIdAndDelete(simulacion._id);
@@ -482,7 +568,7 @@ exports.simulate = async (req, res) => {
         amortizationType,
         rateType,
         annualRate,
-        sure: interestRate.sure*amount,
+        sure: interestRate.sure * amount,
       },
       ...result,
 
@@ -493,7 +579,7 @@ exports.simulate = async (req, res) => {
 
     // Solo guardar si hay sesión activa
     if (req.decode || req.cookies?.token) {
-      const userId = req.decode ? req.decode.id : null;
+      const userId = req.decode ? req.decode.id : req.cookies.userId || null;
 
       const savedSimulation = new LoanSimulationModel({
         userId,
@@ -505,14 +591,17 @@ exports.simulate = async (req, res) => {
         amortizationTable: result.schedule,
         annualInterestRate: interestRate.baseRate,
         interestRate: interestRate._id,
-        sure:result.sure
+        sure: result.sure,
       });
 
-      await savedSimulation.save();
+      const doc = await savedSimulation.save();
+
       responseData.saved = true;
+      responseData.simulationId = doc;
     } else {
       responseData.saved = false;
       responseData.note = "Simulación no guardada — requiere sesión iniciada";
+      console.log("nada");
     }
 
     return res.json(responseData);
@@ -584,70 +673,47 @@ exports.updateStatusSimulation = async (req, res) => {
   }
 };
 
-// const evaluateBusinessRules = async (contextData) => {
-//   const rules = await BusinessRule.find({ isActive: true });
+// ===========================================================
+// CONTROLADOR: OBTENER SIMULACIÓN
+// ===========================================================
+exports.getSimulationById = async (req, res) => {
+  try {
+    const { idSimulacion } = req.params;
+    const simulacion = await LoanSimulationModel.findById(idSimulacion);
+    if (!simulacion)
+      return res
+        .status(404)
+        .json({ msj: "Simulación de préstamo no encontrada" });
 
-//   const appliedRules = [];
-//   const failedApprovalRules = [];
-//   let approvalStatus = "aprobado";
+    res.status(200).json(simulacion);
+  } catch (error) {
+    res.status(500).json({
+      msj: "Error al obtener la simulación",
+      error: error.message,
+    });
+  }
+};
 
-//   for (const rule of rules) {
-//     try {
-//       // Combinar contextData con los parámetros de la regla
-//       const data = { ...contextData, ...(rule.parameters || {}) };
+// ===========================================================
+// CONTROLADOR: OBTENER SIMULACIÓN de usuario logeado y si es owner puede ver todas
+// ===========================================================
+exports.getSimulationsByUser = async (req, res) => {
+  try {
+    const userId = req.decode?.id; // ← tomado del token JWT
+    const role = req.decode?.role; // ← tomado del token JWT
 
-//       // 🔍 Extraer solo las variables usadas en la condición
-//       const usedVariables = [...new Set(rule.condition.match(/\b[A-Za-z_]\w*\b/g))].filter(
-//         (key) => Object.keys(data).includes(key)
-//       );
+    let simulations;
+    if (role === "owner") {
+      simulations = await LoanSimulationModel.find();
+    } else {
+      simulations = await LoanSimulationModel.find({ userId });
+    }
 
-//       // Crear un subconjunto solo con las variables usadas
-//       const relevantData = {};
-//       usedVariables.forEach((v) => (relevantData[v] = data[v]));
-
-//       // Crear función dinámica usando solo las variables necesarias
-//       const fn = new Function(...usedVariables, `return (${rule.condition});`);
-//       const passed = fn(...usedVariables.map((v) => relevantData[v]));
-
-//       // Generar texto con los valores reales de comparación
-//       const evaluatedCondition = rule.condition.replace(
-//         /\b[A-Za-z_]\w*\b/g,
-//         (key) =>
-//           relevantData.hasOwnProperty(key)
-//             ? typeof relevantData[key] === "string"
-//               ? `"${relevantData[key]}"`
-//               : relevantData[key]
-//             : key
-//       );
-
-//       const dataPreview = Object.entries(relevantData)
-//         .map(([k, v]) => `${k}: ${v}`)
-//         .join(", ");
-
-//       const ruleResult = {
-//         name: rule.name,
-//         condition: rule.condition,
-//         evaluated: `${evaluatedCondition} → ${passed}`,
-//         description: rule.description,
-//         type: rule.type,
-//         data: dataPreview,
-//       };
-
-//       if (passed) {
-//         appliedRules.push(ruleResult);
-//       } else if (rule.type === "approval") {
-//         failedApprovalRules.push(ruleResult);
-//         approvalStatus = "rechazado";
-//       }
-//     } catch (error) {
-//       console.error(`Error evaluando regla ${rule.name}:`, error.message);
-//     }
-//   }
-
-//   return {
-//     reglasEvaluadas: rules.length,
-//     reglasAplicadas: appliedRules,
-//     reglasFallidas: failedApprovalRules,
-//     approvalStatus,
-//   };
-// };
+    res.status(200).json(simulations);
+  } catch (error) {
+    res.status(500).json({
+      msj: "Error al obtener las simulaciones",
+      error: error.message,
+    });
+  }
+};

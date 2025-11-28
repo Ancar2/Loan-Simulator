@@ -1,6 +1,5 @@
 const BusinessRule = require("../models/businessRule.model");
 
-
 // ---------------------------------------------
 // CREAR REGLA
 // ---------------------------------------------
@@ -45,16 +44,14 @@ exports.getAllBusinessRules = async (req, res) => {
   }
 };
 
-
 // ---------------------------------------------
 //  OBTENER REGLA POR ID
 // ---------------------------------------------
- 
+
 exports.getBusinessRuleById = async (req, res) => {
   try {
     const rule = await BusinessRule.findById(req.params.id);
-    if (!rule)
-      return res.status(404).json({ msj: "Regla no encontrada" });
+    if (!rule) return res.status(404).json({ msj: "Regla no encontrada" });
 
     res.status(200).json(rule);
   } catch (error) {
@@ -79,8 +76,7 @@ exports.updateBusinessRule = async (req, res) => {
       { new: true }
     );
 
-    if (!updated)
-      return res.status(404).json({ msj: "Regla no encontrada" });
+    if (!updated) return res.status(404).json({ msj: "Regla no encontrada" });
 
     res.status(200).json({
       msj: "Regla actualizada correctamente",
@@ -99,17 +95,28 @@ exports.updateBusinessRule = async (req, res) => {
 // ---------------------------------------------
 exports.deleteBusinessRule = async (req, res) => {
   try {
-    const deleted = await BusinessRule.findByIdAndUpdate(
-      req.params.id,
-      { isActive: false },
-      { new: true }
-    );
+   
+    let deleted = await BusinessRule.findById(req.params.id);
 
-    if (!deleted)
+    if (!deleted) {
       return res.status(404).json({ msj: "Regla no encontrada" });
+    }
 
-    res.status(200).json({
-      msj: "Regla desactivada correctamente",
+    if (deleted.isActive === true) {
+      deleted = await BusinessRule.findByIdAndUpdate(
+        req.params.id,
+        { isActive: false },
+        { new: true }
+      );
+      return res.status(200).json({
+        msj: "Regla desactivada correctamente",
+        data: deleted,
+      });
+    }
+
+    await BusinessRule.findByIdAndDelete(req.params.id);
+    return res.status(200).json({
+      msj: "Regla eliminada permanentemente",
       data: deleted,
     });
   } catch (error) {

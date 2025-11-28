@@ -8,6 +8,7 @@ const riskProfileController = require("../controller/riskProfile.controller");
 const businessRuleController = require("../controller/bussinessRule.controller");
 const loanSimulationController = require("../controller/loanSimulation.controller");
 const interestRateController = require("../controller/interestRate.controller");
+const loanController = require("../controller/loan.controller");
 
 
 // Ruta pública (clientes se registran)
@@ -46,8 +47,10 @@ router.delete("/businessrules/delete/:id", middlewareJWT, businessRuleController
 
 //rutas de simulaciones de préstamo
 router.post('/simulate', loanSimulationController.simulate);
-router.post("/calculateScore/:idSimulacion", middlewareJWT, loanSimulationController.calculateCreditScore);
+router.post("/analizeSimulation/:idSimulacion", middlewareJWT, loanSimulationController.calculateCreditScore);
 router.post('/accept/loan/:idSimulacion',middlewareJWT, loanSimulationController.updateStatusSimulation);
+router.get("/simulations/user", middlewareJWT, loanSimulationController.getSimulationsByUser);
+router.get("/simulations/:id", middlewareJWT, loanSimulationController.getSimulationById);
 
 
 //rutas de tasa de interés
@@ -56,6 +59,9 @@ router.get("/interest_rates", middlewareJWT, interestRateController.getInterestR
 router.get("/interest_rates/:id", middlewareJWT, interestRateController.getInterestRateById);
 router.put("/interest_rates/update/:id", middlewareJWT, interestRateController.updateInterestRate);
 router.delete("/interest_rates/delete/:id", middlewareJWT, interestRateController.deleteInterestRate);
+
+//rutas de prestamos
+router.get("/loans", middlewareJWT, loanController.getLoansByUser);
 
 
 module.exports = router;

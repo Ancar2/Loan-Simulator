@@ -94,6 +94,15 @@ exports.updateUser = async (req, res) => {
 
     if (userId == user._id || role == "owner") {
       if (data.password) {
+         if (!data.oldPassword) {
+          return res.status(400).json({ msj: "Debes ingresar tu contraseña actual para cambiarla" });
+        }
+
+        const isMatch = await bcrypt.compare(data.oldPassword, user.password);
+        if (!isMatch) {
+          return res.status(400).json({ msj: "Contraseña actual incorrecta" });
+        }
+
         const salt = await bcrypt.genSalt(10);
         data.password = await bcrypt.hash(data.password, salt);
       }
@@ -152,7 +161,7 @@ exports.updateUser = async (req, res) => {
         .json({ msj: "no tienes permiso para actualizar este usuario" });
     }
   } catch (error) {
-    res.status(500).json(error);
+    res.status(500).json(error.message);
   }
 };
 

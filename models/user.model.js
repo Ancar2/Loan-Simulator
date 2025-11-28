@@ -153,12 +153,10 @@ const userSchema = mongoose.Schema(
 
     creditScore: {
       type: Number,
-      default: 0,
     },
     profile: {
       type: String,
       enum: ["A", "B", "C"],
-      default: "C",
     },
     riskProfile: {
       type: mongoose.Schema.Types.ObjectId,
