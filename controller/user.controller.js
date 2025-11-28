@@ -126,7 +126,7 @@ exports.updateUser = async (req, res) => {
           });
         }
         if (data.ocupacion == "profesional independiente") {
-          if (!data.profesion) {
+          if (!data.profession) {
             return res.status(400).json({
               msj: "Faltan datos para profesion de profesional independiente",
             });

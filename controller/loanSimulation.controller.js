@@ -616,17 +616,17 @@ exports.updateStatusSimulation = async (req, res) => {
     const { statusForUser } = req.body;
     const userId = req.decode?.id; // ← tomado del token JWT
 
-    // 1️⃣ Buscar simulación
+    // 1️Buscar simulación
     const simulacion = await LoanSimulationModel.findById(idSimulacion);
     if (!simulacion)
       return res
         .status(404)
         .json({ msj: "Simulación de préstamo no encontrada" });
 
-    // 2️⃣ Actualizar estado en simulación
+    // 2️Actualizar estado en simulación
     simulacion.statusForUser = statusForUser;
 
-    // ✅ Si el usuario aprueba → guardar fecha y crear nuevo préstamo
+    // Si el usuario aprueba → guardar fecha y crear nuevo préstamo
     let newLoan = null;
     if (statusForUser === "aprobado") {
       simulacion.startDate = new Date();
@@ -651,7 +651,7 @@ exports.updateStatusSimulation = async (req, res) => {
       await simulacion.save();
     }
 
-    // 4️⃣ Respuesta final
+    // 4Respuesta final
     res.status(200).json({
       msj:
         statusForUser === "aprobado"
