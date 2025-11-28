@@ -112,7 +112,7 @@ const userSchema = mongoose.Schema(
         type: Number 
     },
 
-    profession: { 
+    profesion: { 
         type: String 
     }, 
 
